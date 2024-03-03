@@ -1,0 +1,76 @@
+#include <esp_now.h>
+#include <WiFi.h>
+
+// Universal MAC Address
+uint8_t broadcastAddress[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+// Structure example to send data
+// Must match the receiver structure
+typedef struct struct_message {
+  int a;
+} struct_message;
+
+struct_message myData;
+struct_message incomingReadings;
+
+// Create peer interface
+esp_now_peer_info_t peerInfo;
+
+// Callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("Last Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
+  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
+
+  // Serial.print("Bytes Received: ");
+  // Serial.println(len);
+  Serial.print("Incoming Data: ");
+  Serial.println(incomingReadings.a);
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  // Set device as a WiFi Station
+  WiFi.mode(WIFI_STA);
+
+  // Init ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Send Callback Function
+  esp_now_register_send_cb(OnDataSent);
+
+  // Receive Callback Function
+  esp_now_register_recv_cb(OnDataRecv);
+
+  // Register peer
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+
+  // Add peer
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  }
+}
+
+void loop() {
+  switch (myData.a) {
+    case 0:
+      myData.a = 1;
+      break;
+    case 1: 
+      myData.a = 0;
+      break;
+  }
+  
+  esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
+  delay(5000);
+}

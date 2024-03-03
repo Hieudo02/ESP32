@@ -1,0 +1,47 @@
+- Phương thức "server.on()": phương thức nhận 2 tham số: URL và tên hàm muốn thực thi khi truy cập URL
+Ví dụ: dòng đầu tiên của đoạn code bên dưới cho biết rằng khi Server nhận được HTTP request 
+trên đường dẫn gốc là ''/" ( hay là 192.168.31.171/ ), thì nó sẽ xử lý hàm handle_OnConnect(). 
+Lưu ý rằng URL được chỉ định là một đường dẫn tương đối.
+	  server.on("/", handle_OnConnect);
+          server.on("/led1on", handle_led1on);
+
+
+
+// sử dụng thư viện ESP8266HTTPClient hoặc ESP32HTTPClient để tạo một máy chủ web đơn giản. 
+// Máy chủ này có một điểm cuối ("/update") để cập nhật firmware của thiết bị thông qua HTTP POST request.
+
+// Đây là hàm callback, được gọi khi có một HTTP POST request được gửi đến đường dẫn "/update"
+server.on("/update", HTTP_POST, []() {
+    // Xử lý khi nhận được HTTP POST request đến đường dẫn "/update"
+}, []() {
+    // Xử lý khi nhận được các phần dữ liệu từ HTTP POST request đến đường dẫn "/update"
+});
+
+// Đây là cách để nhận dữ liệu được gửi từ client.
+HTTPUpload &upload = server.upload(); 
+
+/*
+Trong vòng lặp, upload.status được sử dụng để kiểm tra trạng thái của dữ liệu. Cụ thể:
+	UPLOAD_FILE_START: Trạng thái bắt đầu của tệp tin đã được gửi.
+	UPLOAD_FILE_WRITE: Trạng thái ghi dữ liệu từ tệp tin vào bộ nhớ flash.
+	UPLOAD_FILE_END: Trạng thái kết thúc của tệp tin đã được gửi.
+
+Trong mỗi trạng thái, mã xác định được thực hiện để xử lý dữ liệu tương ứng. 
+Điều quan trọng là dữ liệu được ghi vào bộ nhớ flash thông qua Update.write() và kết thúc bằng Update.end(true) 
+để kết thúc việc cập nhật firmware.
+
+Update.write(upload.buf, upload.currentSize) là một phần của đoạn mã được sử dụng để ghi dữ liệu 
+từ client được tải lên vào bộ nhớ flash của thiết bị ESP8266 hoặc ESP32.
+	upload.buf: Đây là con trỏ tới dữ liệu đang được tải lên từ client. 
+		Dữ liệu này được lưu trong một buffer (vùng nhớ tạm thời) trong quá trình tải lên.
+	upload.currentSize: Đây là kích thước hiện tại của dữ liệu trong buffer.
+	
+Hàm Update.write() được sử dụng để ghi dữ liệu từ buffer vào bộ nhớ flash. Nó nhận vào hai tham số:
+	upload.buf: Con trỏ đến dữ liệu cần được ghi.
+	upload.currentSize: Kích thước của dữ liệu cần được ghi.
+Hàm này sẽ trả về số lượng byte đã được ghi. Trong trường hợp có bất kỳ lỗi nào xảy ra trong quá trình ghi, 
+hàm sẽ trả về một giá trị nhỏ hơn kích thước dữ liệu được cung cấp, và thông báo lỗi có thể được in ra bằng cách 
+sử dụng Update.printError(Serial).
+*/
+
+
